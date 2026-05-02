@@ -4,9 +4,16 @@ set -e
 FRP_VERSION="0.68.1"
 FRP_SERVER="xiangpan.asuscomm.com"
 FRP_PORT="7000"
-LOCAL_PORT="${LOCAL_PORT:-$((RANDOM % 55535 + 10000))}"
-SSH_PORT=$((RANDOM % 10000 + 20000))
 SHORT_HOST=$(hostname | cut -d. -f1)
+CONFIG=~/.config/frp/frpc.toml
+
+# Reuse existing ports if config already exists
+if [[ -f "$CONFIG" ]]; then
+  LOCAL_PORT=$(grep -A2 'name = "web"' "$CONFIG" | grep localPort | grep -o '[0-9]*')
+  SSH_PORT=$(grep -A2 'name = "ssh"' "$CONFIG" | grep remotePort | grep -o '[0-9]*')
+fi
+LOCAL_PORT="${LOCAL_PORT:-$((RANDOM % 55535 + 10000))}"
+SSH_PORT="${SSH_PORT:-$((RANDOM % 10000 + 20000))}"
 
 # Detect architecture
 ARCH=$(uname -m)
@@ -18,7 +25,7 @@ case "$ARCH" in
 esac
 
 # Install frpc if missing
-if ! command -v frpc &>/dev/null; then
+if ! command -v frpc &>/dev/null && [[ ! -f ~/.local/bin/frpc ]]; then
   echo "[frpc] Installing frpc v${FRP_VERSION} (${ARCH})..."
   mkdir -p ~/.local/bin
   TMP=$(mktemp -d)
@@ -28,10 +35,11 @@ if ! command -v frpc &>/dev/null; then
   rm -rf "$TMP"
   echo "[frpc] Installed to ~/.local/bin/frpc"
 fi
+FRPC=$(command -v frpc 2>/dev/null || echo ~/.local/bin/frpc)
 
 # Write config
 mkdir -p ~/.config/frp
-cat > ~/.config/frp/frpc.toml <<EOF
+cat > "$CONFIG" <<EOF
 serverAddr = "${FRP_SERVER}"
 serverPort = ${FRP_PORT}
 
@@ -47,12 +55,14 @@ type = "tcp"
 localPort = 22
 remotePort = ${SSH_PORT}
 EOF
-echo "[frpc] HTTP: ${SHORT_HOST}.xiangpan.org -> localhost:${LOCAL_PORT}"
-echo "[frpc] SSH:  ssh -p ${SSH_PORT} \$USER@${FRP_SERVER}"
 
 # Run in background
 pkill -f "frpc -c $HOME/.config/frp/frpc.toml" 2>/dev/null || true
-nohup ~/.local/bin/frpc -c ~/.config/frp/frpc.toml > ~/.config/frp/frpc.log 2>&1 &
-echo "[frpc] Started (PID $!), log: ~/.config/frp/frpc.log"
-echo "[frpc] Visit: https://${SHORT_HOST}.xiangpan.org"
-echo "[frpc] Local port: ${LOCAL_PORT}"
+nohup "$FRPC" -c "$CONFIG" > ~/.config/frp/frpc.log 2>&1 &
+sleep 1
+
+echo ""
+echo "  Web : https://${SHORT_HOST}.xiangpan.org  (local port ${LOCAL_PORT})"
+echo "  SSH : ssh -p ${SSH_PORT} ${USER}@${FRP_SERVER}"
+echo "  Log : ~/.config/frp/frpc.log"
+echo ""
