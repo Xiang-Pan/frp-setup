@@ -9,8 +9,8 @@ CONFIG=~/.config/frp/frpc.toml
 
 # Reuse existing ports if config already exists
 if [[ -f "$CONFIG" ]]; then
-  LOCAL_PORT=$(grep -A2 'name = "web"' "$CONFIG" | grep localPort | grep -o '[0-9]*' || true)
-  SSH_PORT=$(grep -A2 'name = "ssh"' "$CONFIG" | grep remotePort | grep -o '[0-9]*' || true)
+  LOCAL_PORT=$(grep localPort "$CONFIG" | grep -v '= 22$' | grep -o '[0-9]*' || true)
+  SSH_PORT=$(grep remotePort "$CONFIG" | grep -o '[0-9]*' || true)
 fi
 LOCAL_PORT="${LOCAL_PORT:-$((RANDOM % 55535 + 10000))}"
 SSH_PORT="${SSH_PORT:-$((RANDOM % 10000 + 20000))}"
@@ -49,13 +49,13 @@ serverPort = ${FRP_PORT}
 transport.protocol = "wss"
 
 [[proxies]]
-name = "web"
+name = "${SHORT_HOST}-web"
 type = "http"
 localPort = ${LOCAL_PORT}
 customDomains = ["${SHORT_HOST}.xiangpan.org"]
 
 [[proxies]]
-name = "ssh"
+name = "${SHORT_HOST}-ssh"
 type = "tcp"
 localPort = 22
 remotePort = ${SSH_PORT}
