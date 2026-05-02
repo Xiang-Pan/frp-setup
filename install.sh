@@ -5,7 +5,7 @@ FRP_VERSION="0.68.1"
 FRP_SERVER="xiangpan.asuscomm.com"
 FRP_PORT="7000"
 LOCAL_PORT="${LOCAL_PORT:-$((RANDOM % 55535 + 10000))}"
-HOSTNAME="${HOSTNAME:-$(hostname)}"
+HOSTNAME="${HOSTNAME:-$(hostname | tr '.' '-')}"
 
 # Detect architecture
 ARCH=$(uname -m)
