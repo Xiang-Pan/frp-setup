@@ -2,8 +2,8 @@
 set -e
 
 FRP_VERSION="0.68.1"
-FRP_SERVER="xiangpan.asuscomm.com"
-FRP_PORT="7000"
+FRP_SERVER="frp.xiangpan.org"
+FRP_PORT="443"
 SHORT_HOST=$(hostname | cut -d. -f1)
 CONFIG=~/.config/frp/frpc.toml
 
@@ -46,6 +46,7 @@ mkdir -p ~/.config/frp
 cat > "$CONFIG" <<EOF
 serverAddr = "${FRP_SERVER}"
 serverPort = ${FRP_PORT}
+transport.protocol = "wss"
 
 [[proxies]]
 name = "web"
@@ -67,6 +68,6 @@ sleep 1
 
 echo ""
 echo "  Web : https://${SHORT_HOST}.xiangpan.org  (local port ${LOCAL_PORT})"
-echo "  SSH : ssh -p ${SSH_PORT} ${USER}@${FRP_SERVER}"
+echo "  SSH : ssh -p ${SSH_PORT} ${USER}@xiangpan.asuscomm.com"
 echo "  Log : ~/.config/frp/frpc.log"
 echo ""
