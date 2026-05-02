@@ -2,7 +2,7 @@
 set -e
 
 FRP_VERSION="0.68.1"
-FRP_SERVER="frp.xiangpan.org"
+FRP_SERVER="xiangpan.asuscomm.com"
 FRP_PORT="443"
 SHORT_HOST=$(hostname | cut -d. -f1)
 CONFIG=~/.config/frp/frpc.toml
