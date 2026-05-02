@@ -9,8 +9,8 @@ CONFIG=~/.config/frp/frpc.toml
 
 # Reuse existing ports if config already exists
 if [[ -f "$CONFIG" ]]; then
-  LOCAL_PORT=$(grep -A2 'name = "web"' "$CONFIG" | grep localPort | grep -o '[0-9]*')
-  SSH_PORT=$(grep -A2 'name = "ssh"' "$CONFIG" | grep remotePort | grep -o '[0-9]*')
+  LOCAL_PORT=$(grep -A2 'name = "web"' "$CONFIG" | grep localPort | grep -o '[0-9]*' || true)
+  SSH_PORT=$(grep -A2 'name = "ssh"' "$CONFIG" | grep remotePort | grep -o '[0-9]*' || true)
 fi
 LOCAL_PORT="${LOCAL_PORT:-$((RANDOM % 55535 + 10000))}"
 SSH_PORT="${SSH_PORT:-$((RANDOM % 10000 + 20000))}"
@@ -25,17 +25,21 @@ case "$ARCH" in
 esac
 
 # Install frpc if missing
-if ! command -v frpc &>/dev/null && [[ ! -f ~/.local/bin/frpc ]]; then
-  echo "[frpc] Installing frpc v${FRP_VERSION} (${ARCH})..."
-  mkdir -p ~/.local/bin
-  TMP=$(mktemp -d)
-  curl -fsSL "https://github.com/fatedier/frp/releases/download/v${FRP_VERSION}/frp_${FRP_VERSION}_linux_${ARCH}.tar.gz" \
-    | tar xz -C "$TMP" --strip-components=1
-  mv "$TMP/frpc" ~/.local/bin/frpc
-  rm -rf "$TMP"
-  echo "[frpc] Installed to ~/.local/bin/frpc"
+FRPC=$(command -v frpc 2>/dev/null || echo "")
+if [[ -z "$FRPC" ]]; then
+  FRPC=~/.local/bin/frpc
+  if [[ ! -f "$FRPC" ]]; then
+    echo "[frpc] Installing frpc v${FRP_VERSION} (${ARCH})..."
+    mkdir -p ~/.local/bin
+    TMP=$(mktemp -d)
+    curl -fsSL "https://github.com/fatedier/frp/releases/download/v${FRP_VERSION}/frp_${FRP_VERSION}_linux_${ARCH}.tar.gz" \
+      | tar xz -C "$TMP" --strip-components=1
+    mv "$TMP/frpc" "$FRPC"
+    rm -rf "$TMP"
+    echo "[frpc] Installed to $FRPC"
+  fi
 fi
-FRPC=$(command -v frpc 2>/dev/null || echo ~/.local/bin/frpc)
+echo "[frpc] Using $FRPC"
 
 # Write config
 mkdir -p ~/.config/frp
