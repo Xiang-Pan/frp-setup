@@ -4,7 +4,7 @@ set -e
 FRP_VERSION="0.68.1"
 FRP_SERVER="xiangpan.asuscomm.com"
 FRP_PORT="7000"
-LOCAL_PORT="${LOCAL_PORT:-80}"
+LOCAL_PORT="${LOCAL_PORT:-$((RANDOM % 55535 + 10000))}"
 HOSTNAME="${HOSTNAME:-$(hostname)}"
 
 # Detect architecture
@@ -19,16 +19,18 @@ esac
 # Install frpc if missing
 if ! command -v frpc &>/dev/null; then
   echo "[frpc] Installing frpc v${FRP_VERSION} (${ARCH})..."
+  mkdir -p ~/.local/bin
   TMP=$(mktemp -d)
   curl -fsSL "https://github.com/fatedier/frp/releases/download/v${FRP_VERSION}/frp_${FRP_VERSION}_linux_${ARCH}.tar.gz" \
     | tar xz -C "$TMP" --strip-components=1
-  sudo mv "$TMP/frpc" /usr/local/bin/frpc
+  mv "$TMP/frpc" ~/.local/bin/frpc
   rm -rf "$TMP"
-  echo "[frpc] Installed to /usr/local/bin/frpc"
+  echo "[frpc] Installed to ~/.local/bin/frpc"
 fi
 
 # Write config
-sudo tee /etc/frpc.toml > /dev/null <<EOF
+mkdir -p ~/.config/frp
+cat > ~/.config/frp/frpc.toml <<EOF
 serverAddr = "${FRP_SERVER}"
 serverPort = ${FRP_PORT}
 
@@ -40,22 +42,9 @@ customDomains = ["${HOSTNAME}.xiangpan.org"]
 EOF
 echo "[frpc] Config: ${HOSTNAME}.xiangpan.org -> localhost:${LOCAL_PORT}"
 
-# Install systemd service
-sudo tee /etc/systemd/system/frpc.service > /dev/null <<EOF
-[Unit]
-Description=FRP Client
-After=network.target
-
-[Service]
-ExecStart=/usr/local/bin/frpc -c /etc/frpc.toml
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-sudo systemctl daemon-reload
-sudo systemctl enable --now frpc
-echo "[frpc] Service enabled and started"
+# Run in background
+pkill -f "frpc -c $HOME/.config/frp/frpc.toml" 2>/dev/null || true
+nohup ~/.local/bin/frpc -c ~/.config/frp/frpc.toml > ~/.config/frp/frpc.log 2>&1 &
+echo "[frpc] Started (PID $!), log: ~/.config/frp/frpc.log"
 echo "[frpc] Visit: https://${HOSTNAME}.xiangpan.org"
+echo "[frpc] Local port: ${LOCAL_PORT}"
