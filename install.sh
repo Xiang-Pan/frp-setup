@@ -5,7 +5,7 @@ FRP_VERSION="0.68.1"
 FRP_SERVER="xiangpan.asuscomm.com"
 FRP_PORT="7000"
 LOCAL_PORT="${LOCAL_PORT:-$((RANDOM % 55535 + 10000))}"
-HOSTNAME=$(hostname | cut -d. -f1)
+SHORT_HOST=$(hostname | cut -d. -f1)
 
 # Detect architecture
 ARCH=$(uname -m)
@@ -38,13 +38,13 @@ serverPort = ${FRP_PORT}
 name = "web"
 type = "http"
 localPort = ${LOCAL_PORT}
-customDomains = ["${HOSTNAME}.xiangpan.org"]
+customDomains = ["${SHORT_HOST}.xiangpan.org"]
 EOF
-echo "[frpc] Config: ${HOSTNAME}.xiangpan.org -> localhost:${LOCAL_PORT}"
+echo "[frpc] Config: ${SHORT_HOST}.xiangpan.org -> localhost:${LOCAL_PORT}"
 
 # Run in background
 pkill -f "frpc -c $HOME/.config/frp/frpc.toml" 2>/dev/null || true
 nohup ~/.local/bin/frpc -c ~/.config/frp/frpc.toml > ~/.config/frp/frpc.log 2>&1 &
 echo "[frpc] Started (PID $!), log: ~/.config/frp/frpc.log"
-echo "[frpc] Visit: https://${HOSTNAME}.xiangpan.org"
+echo "[frpc] Visit: https://${SHORT_HOST}.xiangpan.org"
 echo "[frpc] Local port: ${LOCAL_PORT}"
