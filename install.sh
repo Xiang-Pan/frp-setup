@@ -5,6 +5,7 @@ FRP_VERSION="0.68.1"
 FRP_SERVER="xiangpan.asuscomm.com"
 FRP_PORT="7000"
 LOCAL_PORT="${LOCAL_PORT:-$((RANDOM % 55535 + 10000))}"
+SSH_PORT=$((RANDOM % 10000 + 20000))
 SHORT_HOST=$(hostname | cut -d. -f1)
 
 # Detect architecture
@@ -39,8 +40,15 @@ name = "web"
 type = "http"
 localPort = ${LOCAL_PORT}
 customDomains = ["${SHORT_HOST}.xiangpan.org"]
+
+[[proxies]]
+name = "ssh"
+type = "tcp"
+localPort = 22
+remotePort = ${SSH_PORT}
 EOF
-echo "[frpc] Config: ${SHORT_HOST}.xiangpan.org -> localhost:${LOCAL_PORT}"
+echo "[frpc] HTTP: ${SHORT_HOST}.xiangpan.org -> localhost:${LOCAL_PORT}"
+echo "[frpc] SSH:  ssh -p ${SSH_PORT} \$USER@${FRP_SERVER}"
 
 # Run in background
 pkill -f "frpc -c $HOME/.config/frp/frpc.toml" 2>/dev/null || true
